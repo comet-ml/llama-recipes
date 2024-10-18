@@ -88,7 +88,7 @@ def setup_comet(train_config, fsdp_config, **kwargs):
     init_dict = dataclasses.asdict(comet_config)
     experiment = comet_ml.start(**init_dict)
     experiment.log_parameters(train_config)
-    experiment.log_parameters(fsdp_config, allow_val_change=True)
+    experiment.log_parameters(fsdp_config)
     return experiment
 
 def main(**kwargs):
