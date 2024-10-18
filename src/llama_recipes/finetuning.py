@@ -87,8 +87,8 @@ def setup_comet(train_config, fsdp_config, **kwargs):
     update_config(comet_config, **kwargs)
     init_dict = dataclasses.asdict(comet_config)
     experiment = comet_ml.start(**init_dict)
-    experiment.config.log_parameters(train_config)
-    experiment.config.log_parameters(fsdp_config, allow_val_change=True)
+    experiment.log_parameters(train_config)
+    experiment.log_parameters(fsdp_config, allow_val_change=True)
     return experiment
 
 def main(**kwargs):
@@ -199,7 +199,7 @@ def main(**kwargs):
             model = get_peft_model(model, peft_config)
         if wandb_run:
             wandb_run.config.update(peft_config)
-        if comet_config:
+        if comet_exp:
             comet_exp.log_parameters(peft_config)
         model.print_trainable_parameters()
 

@@ -195,11 +195,11 @@ def train(model, train_dataloader,eval_dataloader, tokenizer, optimizer, lr_sche
                             })
                     if comet_exp:
                         if not train_config.enable_fsdp or rank==0:
+                            comet_epoch = epoch + 1
+                            comet_step = epoch * len(train_dataloader) + step
                             comet_exp.log_metrics({
-                                'train/epoch': epoch + 1,
-                                'train/step': epoch * len(train_dataloader) + step,
                                 'train/loss': loss.detach().float(),
-                            })
+                            }, step=comet_step, epoch=comet_epoch)
 
                     pbar.set_description(f"Training Epoch: {epoch+1}/{train_config.num_epochs}, step {step}/{len(train_dataloader)} completed (loss: {loss.detach().float()})")
 

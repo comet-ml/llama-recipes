@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 class comet_config:
     api_key: Optional[str] = None
     workspace: Optional[str] = None
-    project: Optional[str] = None
     project_name: Optional[str] = None
     experiment_key: Optional[str] = None
     mode: Optional[str] = None
