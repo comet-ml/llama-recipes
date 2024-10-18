@@ -74,6 +74,23 @@ def setup_wandb(train_config, fsdp_config, **kwargs):
     run.config.update(fsdp_config, allow_val_change=True)
     return run
 
+def setup_comet(train_config, fsdp_config, **kwargs):
+    try:
+        import comet_ml
+    except ImportError:
+        raise ImportError(
+            "You are trying to use comet_ml which is not currently installed. "
+            "Please install it using pip install comet_ml"
+        )
+    from llama_recipes.configs import comet_config as COMET_CONFIG
+    comet_config = COMET_CONFIG()
+    update_config(comet_config, **kwargs)
+    init_dict = dataclasses.asdict(comet_config)
+    experiment = comet_ml.start(**init_dict)
+    experiment.config.log_parameters(train_config)
+    experiment.config.log_parameters(fsdp_config, allow_val_change=True)
+    return experiment
+
 def main(**kwargs):
     # Update the configuration for the training and sharding process
     train_config, fsdp_config = TRAIN_CONFIG(), FSDP_CONFIG()
@@ -106,6 +123,12 @@ def main(**kwargs):
         if not train_config.enable_fsdp or rank==0:
             wandb_run = setup_wandb(train_config, fsdp_config, **kwargs)
     
+    comet_exp = None
+
+    if train_config.use_comet:
+        if not train_config.enable_fsdp or rank==0:
+            comet_exp = setup_comet(train_config, fsdp_config, **kwargs)
+
     #setting quantization configs
     bnb_config = None
     if train_config.quantization:
@@ -176,6 +199,8 @@ def main(**kwargs):
             model = get_peft_model(model, peft_config)
         if wandb_run:
             wandb_run.config.update(peft_config)
+        if comet_config:
+            comet_exp.log_parameters(peft_config)
         model.print_trainable_parameters()
 
     hsdp_device_mesh_plan = None
@@ -323,12 +348,16 @@ def main(**kwargs):
         local_rank if train_config.enable_fsdp else None,
         rank if train_config.enable_fsdp else None,
         wandb_run,
+        comet_exp,
     )
     if not train_config.enable_fsdp or rank==0:
         [print(f'Key: {k}, Value: {v}') for k, v in results.items()]
         if train_config.use_wandb:
             for k,v in results.items():
                 wandb_run.summary[k] = v
+        if train_config.use_comet:
+            for k,v in results.items():
+                comet_exp.log_metric(k, v)
 
 if __name__ == "__main__":
     fire.Fire(main)
